@@ -67,6 +67,15 @@ Beds API
 		}
 	}
 
+Bones API
+---------
+
+* bones.register_on_drop(func(player, pos, drop_mode))
+* bones.get_drop_mode()
+    * `bones` - place bones. If pos is protected, drop as items instead
+    * `drop` - drop as items
+    * `keep` - do nothing
+
 Creative API
 ------------
 

@@ -1,6 +1,21 @@
 -- Minetest 0.4 mod: bones
 -- See README.txt for licensing and other information.
 
+bones = {}
+bones.registered_on_drops = {}
+
+function bones.register_on_drop(func)
+	table.insert(bones.registered_on_drops, func)
+end
+
+function bones.get_bones_mode()
+	local bones_mode = minetest.setting_get("bones_mode")
+	if bones_mode ~= "drop" and bones_mode ~= "keep" then
+		bones_mode = "bones"
+	end
+	return bones
+end
+
 local function is_owner(pos, name)
 	local owner = minetest.get_meta(pos):get_string("owner")
 	if owner == "" or owner == name or minetest.check_player_privs(name, "protection_bypass") then
@@ -148,7 +163,7 @@ local function may_replace(pos, player)
 	return node_definition.buildable_to and not minetest.is_protected(pos, player:get_player_name())
 end
 
-local drop = function(pos, itemstack)
+local function drop(pos, itemstack)
 	local obj = minetest.add_item(pos, itemstack:take_item(itemstack:get_count()))
 	if obj then
 		obj:setvelocity({
@@ -160,11 +175,7 @@ local drop = function(pos, itemstack)
 end
 
 minetest.register_on_dieplayer(function(player)
-
-	local bones_mode = minetest.setting_get("bones_mode") or "bones"
-	if bones_mode ~= "bones" and bones_mode ~= "drop" and bones_mode ~= "keep" then
-		bones_mode = "bones"
-	end
+	local bones_mode = bones.get_bones_mode()
 
 	-- return if keep inventory set or in creative mode
 	if bones_mode == "keep" or minetest.setting_getbool("creative_mode") then
@@ -191,7 +202,6 @@ minetest.register_on_dieplayer(function(player)
 	end
 
 	if bones_mode == "drop" then
-
 		-- drop inventory items
 		for i = 1, player_inv:get_size("main") do
 			drop(pos, player_inv:get_stack("main", i))
@@ -205,6 +215,12 @@ minetest.register_on_dieplayer(function(player)
 		player_inv:set_list("craft", {})
 
 		drop(pos, ItemStack("bones:bones"))
+
+		for _, func in pairs(bones.registered_on_drops) do
+			if func(player, pos, bones_mode) then
+				break
+			end
+		end
 		return
 	end
 
